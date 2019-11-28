@@ -205,6 +205,7 @@ func (g *myGenerator) Start() bool {
 		g.genLoad(throttle)
 		loger.Printf("Stopped, call count :%d\n", g.callCount)
 	}()
+	atomic.StoreUint32(&g.status,STATUSSTARTED)
 	return true
 }
 

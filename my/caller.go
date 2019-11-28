@@ -1,11 +1,13 @@
 package my
 
 import (
+	"net/http"
+
 	"os"
 	"encoding/json"
 	"loadgen/lib"
 	"io/ioutil"
-	"net"
+
 	"sync/atomic"
 	"time"
 )
@@ -26,13 +28,14 @@ func (c *myCaller) BuildReq() lib.RawReq {
 }
 
 func (c *myCaller) Call(req []byte, timeoutNs time.Duration) ([]byte, error) {
-	client, err := net.DialTimeout("tcp", os.Getenv("THOST"), timeoutNs)
+	client:=&http.Client{Timeout: timeoutNs}
+	resp,err:=client.Get("http://"+os.Getenv("THOST")+"/latest")
 	if err != nil {
-		return nil, err
-	}
-	client.Write([]byte("GET /latest HTTP/1.1\n"))
-	defer client.Close()
-	return ioutil.ReadAll(client)
+		return nil,err
+    }
+	defer resp.Body.Close()
+	x,err:= ioutil.ReadAll(resp.Body)
+	return x,err
 }
 
 func (c *myCaller) CheckResp(rawReq lib.RawReq, rawResp lib.RawResp) *lib.CallResult {
@@ -47,8 +50,6 @@ func (c *myCaller) CheckResp(rawReq lib.RawReq, rawResp lib.RawResp) *lib.CallRe
 		}
 	if err != nil {
 		msg = err.Error()
-	}
-	if msg!=""{
 		d.Code=lib.CALL_STATUS_FILED
 		d.Msg=msg
 	}else{
